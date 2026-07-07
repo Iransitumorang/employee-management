@@ -20,7 +20,7 @@ import { CommonModule } from '@angular/common';
         </button>
         @if (menuOpen()) {
           <div class="dropdown-menu">
-            <button class="dropdown-item danger" type="button" (click)="confirmLogout()">Keluar / Logout</button>
+            <button class="dropdown-item danger" type="button" (click)="confirmLogout()">Logout</button>
           </div>
         }
       </div>
@@ -31,7 +31,7 @@ import { CommonModule } from '@angular/common';
 export class ShellComponent {
   readonly menuOpen = signal(false);
 
-  constructor(readonly auth: AuthService) {}
+  constructor(readonly auth: AuthService) { }
 
   getInitial(): string {
     const user = this.auth.currentUser();

@@ -10,9 +10,8 @@ import { AuthService } from '../../core/auth.service';
   template: `
     <main class="auth-page">
       <section class="login-card">
-        <p class="eyebrow">Technical Assessment</p>
         <h1>Login Backoffice</h1>
-        <p class="muted">Masuk pakai akun dummy untuk mengelola data employee.</p>
+        <p class="muted">Masuk untuk mengelola data employee.</p>
 
         <form [formGroup]="form" (ngSubmit)="submit()" class="form-grid">
           <label>Username
@@ -40,7 +39,7 @@ export class LoginComponent {
     password: ['admin123', Validators.required],
   });
 
-  constructor(private readonly auth: AuthService, private readonly router: Router) {}
+  constructor(private readonly auth: AuthService, private readonly router: Router) { }
 
   submit(): void {
     if (this.form.invalid) {
