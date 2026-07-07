@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Employee } from '../../core/employee.model';
 import { EmployeeService, employeeGroups } from '../../core/employee.service';
 
@@ -32,7 +33,12 @@ type SortDirection = 'asc' | 'desc';
       <div class="filters">
         <label>Search username / name / email
           <div class="input-with-btn">
-            <input [value]="keyword()" (input)="onKeywordInput($any($event.target).value)" placeholder="Cari employee..." />
+            <div class="search-input-wrapper">
+              <input [value]="keywordInput()" (input)="onKeywordInput($any($event.target).value)" placeholder="Cari employee..." />
+              @if (keywordInput()) {
+                <button class="btn-clear-input" type="button" (click)="clearKeywordInput()">✕</button>
+              }
+            </div>
             <button class="btn-search" type="button" (click)="applySearch()">🔍 Search</button>
           </div>
         </label>
@@ -79,15 +85,23 @@ type SortDirection = 'asc' | 'desc';
           </thead>
           <tbody>
             @for (employee of pagedEmployees(); track employee.id; let i = $index) {
-              <tr>
+              <tr class="clickable-row" (dblclick)="goDetail(employee.id)" title="Klik 2x untuk melihat detail data">
                 <td>{{ (page() - 1) * pageSize() + i + 1 }}</td>
-                <td><button class="link" type="button" (click)="goDetail(employee.id)">{{ employee.username }}</button></td>
-                <td>{{ employee.firstName }} {{ employee.lastName }}</td>
-                <td>{{ employee.email }}</td>
+                <td>
+                  <button class="link" type="button" (click)="goDetail(employee.id)">
+                    <span [innerHTML]="getHighlightedText(employee.username)"></span>
+                  </button>
+                </td>
+                <td>
+                  <span [innerHTML]="getHighlightedText(toTitleCase(employee.firstName + ' ' + employee.lastName))"></span>
+                </td>
+                <td>
+                  <span [innerHTML]="getHighlightedText(employee.email)"></span>
+                </td>
                 <td>{{ employee.basicSalary | currency:'IDR':'Rp. ':'1.2-2':'id-ID' }}</td>
                 <td><span class="badge" [ngClass]="employee.status.toLowerCase()">{{ employee.status }}</span></td>
                 <td>{{ employee.group }}</td>
-                <td class="actions">
+                <td class="actions" (dblclick)="$event.stopPropagation()">
                   <button class="mini edit" type="button" (click)="showEdit(employee)">Edit</button>
                   <button class="mini delete" type="button" (click)="showDelete(employee)">Delete</button>
                 </td>
@@ -142,7 +156,11 @@ export class EmployeesListComponent {
     return this.filteredEmployees().slice(start, start + this.pageSize());
   });
 
-  constructor(private readonly employeeService: EmployeeService, private readonly router: Router) {
+  constructor(
+    private readonly employeeService: EmployeeService,
+    private readonly router: Router,
+    private readonly sanitizer: DomSanitizer
+  ) {
     const savedToast = sessionStorage.getItem('employee.toast');
     if (savedToast) {
       try {
@@ -153,7 +171,34 @@ export class EmployeesListComponent {
     }
   }
 
-  onKeywordInput(value: string): void { this.keywordInput.set(value); }
+  onKeywordInput(value: string): void {
+    this.keywordInput.set(value);
+    // Instant search/real-time update
+    this.keyword.set(value);
+    this.resetPage();
+  }
+
+  clearKeywordInput(): void {
+    this.keywordInput.set('');
+    this.keyword.set('');
+    this.resetPage();
+  }
+
+  getHighlightedText(text: string): SafeHtml {
+    const search = this.keyword().toLowerCase().trim();
+    if (!search) return this.sanitizer.bypassSecurityTrustHtml(text);
+    
+    const escapedSearch = search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(`(${escapedSearch})`, 'gi');
+    const highlighted = text.replace(regex, `<mark class="search-highlight">$1</mark>`);
+    return this.sanitizer.bypassSecurityTrustHtml(highlighted);
+  }
+
+  toTitleCase(str: string): string {
+    if (!str) return '';
+    return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+  }
+
   onStatusChange(value: string): void { this.status.set(value); this.resetPage(); }
   onGroupChange(value: string): void { this.group.set(value); this.resetPage(); }
   onPageSizeChange(value: number): void { this.pageSize.set(value); this.resetPage(); }

@@ -5,6 +5,14 @@ import { RouterOutlet } from '@angular/router';
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet],
-  template: '<router-outlet />',
+  template: `
+    <div class="clouds-bg">
+      <div class="cloud cloud-1"></div>
+      <div class="cloud cloud-2"></div>
+      <div class="cloud cloud-3"></div>
+      <div class="cloud cloud-4"></div>
+    </div>
+    <router-outlet />
+  `,
 })
 export class App {}
