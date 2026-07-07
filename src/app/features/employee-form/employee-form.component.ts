@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, input, effect, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { EmployeeService, employeeGroups } from '../../core/employee.service';
@@ -9,8 +9,8 @@ import { EmployeeService, employeeGroups } from '../../core/employee.service';
   imports: [ReactiveFormsModule],
   template: `
     <section class="card form-page">
-      <p class="eyebrow">Add Employee</p>
-      <h2>Tambah Employee</h2>
+      <p class="eyebrow">{{ id() ? 'Edit Employee' : 'Add Employee' }}</p>
+      <h2>{{ id() ? 'Edit Data Employee' : 'Tambah Employee' }}</h2>
       <p class="muted">Semua field mandatory. Birth date tidak boleh lebih dari hari ini.</p>
 
       <form [formGroup]="form" (ngSubmit)="save()" class="employee-form">
@@ -53,6 +53,7 @@ import { EmployeeService, employeeGroups } from '../../core/employee.service';
 })
 export class EmployeeFormComponent {
   private readonly fb = inject(FormBuilder);
+  readonly id = input<string>();
   readonly groups = employeeGroups;
   readonly groupSearch = signal('');
   readonly submitted = signal(false);
@@ -71,7 +72,27 @@ export class EmployeeFormComponent {
     description: ['', Validators.required],
   });
 
-  constructor(private readonly employeeService: EmployeeService, private readonly router: Router) {}
+  constructor(private readonly employeeService: EmployeeService, private readonly router: Router) {
+    effect(() => {
+      const empId = this.id();
+      if (empId) {
+        const employee = this.employeeService.findById(Number(empId));
+        if (employee) {
+          this.form.patchValue({
+            username: employee.username,
+            firstName: employee.firstName,
+            lastName: employee.lastName,
+            email: employee.email,
+            birthDate: employee.birthDate,
+            basicSalary: employee.basicSalary,
+            status: employee.status,
+            group: employee.group,
+            description: employee.description,
+          });
+        }
+      }
+    });
+  }
 
   save(): void {
     this.submitted.set(true);
@@ -79,7 +100,15 @@ export class EmployeeFormComponent {
       this.form.markAllAsTouched();
       return;
     }
-    this.employeeService.addEmployee(this.form.getRawValue());
+    const empId = this.id();
+    const rawValue = this.form.getRawValue();
+    if (empId) {
+      this.employeeService.updateEmployee(Number(empId), rawValue);
+      sessionStorage.setItem('employee.toast', JSON.stringify({ type: 'edit', message: `Employee ${rawValue.username} berhasil di-update.` }));
+    } else {
+      this.employeeService.addEmployee(rawValue);
+      sessionStorage.setItem('employee.toast', JSON.stringify({ type: 'add', message: `Employee ${rawValue.username} berhasil ditambahkan.` }));
+    }
     this.router.navigate(['/employees']);
   }
 

@@ -74,7 +74,7 @@ type SortDirection = 'asc' | 'desc';
                 <td>{{ employee.firstName }} {{ employee.lastName }}</td>
                 <td>{{ employee.email }}</td>
                 <td>{{ employee.basicSalary | currency:'IDR':'Rp. ':'1.2-2':'id-ID' }}</td>
-                <td><span class="badge">{{ employee.status }}</span></td>
+                <td><span class="badge" [ngClass]="employee.status.toLowerCase()">{{ employee.status }}</span></td>
                 <td>{{ employee.group }}</td>
                 <td class="actions">
                   <button class="mini edit" type="button" (click)="showEdit(employee)">Edit</button>
@@ -125,7 +125,16 @@ export class EmployeesListComponent {
     return this.filteredEmployees().slice(start, start + this.pageSize);
   });
 
-  constructor(private readonly employeeService: EmployeeService, private readonly router: Router) {}
+  constructor(private readonly employeeService: EmployeeService, private readonly router: Router) {
+    const savedToast = sessionStorage.getItem('employee.toast');
+    if (savedToast) {
+      try {
+        const parsed = JSON.parse(savedToast);
+        this.showToast(parsed.type, parsed.message);
+      } catch {}
+      sessionStorage.removeItem('employee.toast');
+    }
+  }
 
   sortBy(key: SortKey): void {
     if (this.sortKey() === key) this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
@@ -136,8 +145,15 @@ export class EmployeesListComponent {
 
   goDetail(id: number): void { this.saveSearchState(); this.router.navigate(['/employees', id]); }
 
-  showEdit(employee: Employee): void { this.showToast('edit', `Edit dummy untuk ${employee.username}`); }
-  showDelete(employee: Employee): void { this.showToast('delete', `Delete dummy untuk ${employee.username}`); }
+  showEdit(employee: Employee): void {
+    this.saveSearchState();
+    this.router.navigate(['/employees/edit', employee.id]);
+  }
+
+  showDelete(employee: Employee): void {
+    this.employeeService.deleteEmployee(employee.id);
+    this.showToast('delete', `Employee ${employee.username} berhasil dihapus.`);
+  }
 
   private showToast(type: 'edit' | 'delete', message: string): void {
     this.toast.set({ type, message });

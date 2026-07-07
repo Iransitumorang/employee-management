@@ -19,6 +19,14 @@ export class EmployeeService {
     return this.employees().find((employee) => employee.id === id);
   }
 
+  updateEmployee(id: number, employee: Omit<Employee, 'id'>): void {
+    this.employees.update((items) => items.map((item) => item.id === id ? { id, ...employee } : item));
+  }
+
+  deleteEmployee(id: number): void {
+    this.employees.update((items) => items.filter((item) => item.id !== id));
+  }
+
   private createEmployees(): Employee[] {
     return Array.from({ length: 120 }, (_, index) => {
       const number = index + 1;
