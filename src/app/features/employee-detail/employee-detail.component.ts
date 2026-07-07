@@ -11,7 +11,7 @@ import { EmployeeService } from '../../core/employee.service';
     <section class="card detail-card">
       <p class="eyebrow">Employee Detail</p>
       @if (employee(); as data) {
-        <h2>{{ data.firstName }} {{ data.lastName }}</h2>
+        <h2>{{ toTitleCase(data.firstName + ' ' + data.lastName) }}</h2>
         <div class="detail-grid">
           <span>Username</span><strong>{{ data.username }}</strong>
           <span>Email</span><strong>{{ data.email }}</strong>
@@ -33,6 +33,11 @@ export class EmployeeDetailComponent {
   readonly employee = computed(() => this.employeeService.findById(Number(this.id())));
 
   constructor(private readonly employeeService: EmployeeService, private readonly router: Router) {}
+
+  toTitleCase(str: string): string {
+    if (!str) return '';
+    return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+  }
 
   ok(): void { this.router.navigate(['/employees']); }
 }
