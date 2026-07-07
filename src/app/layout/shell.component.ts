@@ -10,7 +10,7 @@ import { AuthService } from '../core/auth.service';
     <header class="topbar">
       <div>
         <p class="eyebrow">Backoffice</p>
-        <h1>Employee Management</h1>
+        <h1 class="topbar-title">Employee Management</h1>
       </div>
       <button class="ghost" type="button" (click)="auth.logout()">Logout</button>
     </header>

@@ -11,41 +11,52 @@ import { EmployeeService, employeeGroups } from '../../core/employee.service';
     <section class="card form-page">
       <p class="eyebrow">{{ id() ? 'Edit Employee' : 'Add Employee' }}</p>
       <h2>{{ id() ? 'Edit Data Employee' : 'Tambah Employee' }}</h2>
-      <p class="muted">Semua field mandatory. Birth date tidak boleh lebih dari hari ini.</p>
+      <p class="muted">Semua field wajib diisi. Birth date tidak boleh melebihi hari ini.</p>
 
       <form [formGroup]="form" (ngSubmit)="save()" class="employee-form">
-        <label>Username <input formControlName="username" /></label>
-        <label>First Name <input formControlName="firstName" /></label>
-        <label>Last Name <input formControlName="lastName" /></label>
-        <label>Email <input formControlName="email" type="email" /></label>
+
+        <p class="form-section-title wide">👤 Informasi Personal</p>
+        <label>Username <input formControlName="username" placeholder="Masukkan username" /></label>
+        <label>First Name <input formControlName="firstName" placeholder="Nama depan" /></label>
+        <label>Last Name <input formControlName="lastName" placeholder="Nama belakang" /></label>
+        <label>Email <input formControlName="email" type="email" placeholder="email@example.com" /></label>
         <label>Birth Date <input formControlName="birthDate" type="datetime-local" [max]="maxDateTime" /></label>
-        <label>Basic Salary <input formControlName="basicSalary" type="number" min="0" /></label>
-        <label>Status
-          <select formControlName="status">
-            <option value="">Choose status</option>
-            <option>Permanent</option><option>Contract</option><option>Probation</option><option>Inactive</option>
-          </select>
+        <label>Basic Salary
+          <input formControlName="basicSalary" type="number" min="0" placeholder="0" />
         </label>
 
+        <p class="form-section-title wide">💼 Informasi Pekerjaan</p>
+        <label>Status
+          <select formControlName="status">
+            <option value="">— Pilih status —</option>
+            <option>Permanent</option>
+            <option>Contract</option>
+            <option>Probation</option>
+            <option>Inactive</option>
+          </select>
+        </label>
         <div class="combo-box">
-          <label>Group Search <input [value]="groupSearch()" (input)="groupSearch.set($any($event.target).value)" placeholder="Search group..." /></label>
+          <label>Cari Group <input [value]="groupSearch()" (input)="groupSearch.set($any($event.target).value)" placeholder="Ketik nama group..." /></label>
           <label>Group
             <select formControlName="group">
-              <option value="">Choose group</option>
+              <option value="">— Pilih group —</option>
               @for (group of filteredGroups(); track group) { <option [value]="group">{{ group }}</option> }
             </select>
           </label>
         </div>
 
-        <label class="wide">Description <input formControlName="description" type="datetime-local" /></label>
+        <p class="form-section-title wide">📝 Keterangan</p>
+        <label class="wide">Description
+          <input formControlName="description" type="datetime-local" />
+        </label>
 
         @if (submitted() && form.invalid) {
-          <div class="alert danger wide">Masih ada data kosong atau format tidak valid. Jangan ngegas submit dulu, cuy.</div>
+          <div class="alert danger wide">Masih ada field kosong atau format tidak valid. Harap periksa kembali.</div>
         }
 
         <div class="button-row wide">
           <button class="ghost" type="button" (click)="cancel()">Cancel</button>
-          <button class="primary" type="submit">Save</button>
+          <button class="primary" type="submit">{{ id() ? 'Update' : 'Save' }}</button>
         </div>
       </form>
     </section>

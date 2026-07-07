@@ -17,7 +17,7 @@ type SortDirection = 'asc' | 'desc';
       <div>
         <p class="eyebrow">Employee List</p>
         <h2>Data Employee</h2>
-        <p class="muted">Search memakai rule AND: keyword + status + group.</p>
+        <p class="muted">Filter menggunakan rule AND: keyword + status + group.</p>
       </div>
       <a class="primary" routerLink="/employees/add">+ Add Employee</a>
     </section>
@@ -28,27 +28,38 @@ type SortDirection = 'asc' | 'desc';
       </div>
     }
 
-    <section class="card filters">
-      <label>Search username / name / email
-        <input [(ngModel)]="keyword" (ngModelChange)="resetPage()" placeholder="Cari employee..." />
-      </label>
-      <label>Status
-        <select [(ngModel)]="status" (ngModelChange)="resetPage()">
-          <option value="">All Status</option>
-          <option>Permanent</option><option>Contract</option><option>Probation</option><option>Inactive</option>
-        </select>
-      </label>
-      <label>Group
-        <select [(ngModel)]="group" (ngModelChange)="resetPage()">
-          <option value="">All Group</option>
-          @for (item of groups; track item) { <option>{{ item }}</option> }
-        </select>
-      </label>
-      <label>Rows per page
-        <select [(ngModel)]="pageSize" (ngModelChange)="resetPage()">
-          <option [ngValue]="5">5</option><option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option>
-        </select>
-      </label>
+    <section class="card">
+      <div class="filters">
+        <label>Search username / name / email
+          <div class="input-with-btn">
+            <input [value]="keyword()" (input)="onKeywordInput($any($event.target).value)" placeholder="Cari employee..." />
+            <button class="btn-search" type="button" (click)="applySearch()">🔍 Search</button>
+          </div>
+        </label>
+        <label>Status
+          <select [value]="status()" (change)="onStatusChange($any($event.target).value)">
+            <option value="">All Status</option>
+            <option>Permanent</option><option>Contract</option><option>Probation</option><option>Inactive</option>
+          </select>
+        </label>
+        <label>Group
+          <select [value]="group()" (change)="onGroupChange($any($event.target).value)">
+            <option value="">All Group</option>
+            @for (item of groups; track item) { <option>{{ item }}</option> }
+          </select>
+        </label>
+        <label>Rows per page
+          <select [value]="pageSize()" (change)="onPageSizeChange(+$any($event.target).value)">
+            <option [value]="5">5</option><option [value]="10">10</option><option [value]="25">25</option><option [value]="50">50</option>
+          </select>
+        </label>
+      </div>
+      <div class="filter-info">
+        <span class="result-count">{{ filteredEmployees().length }} data ditemukan</span>
+        @if (hasActiveFilter()) {
+          <button class="btn-clear" type="button" (click)="resetFilters()">✕ Hapus Filter</button>
+        }
+      </div>
     </section>
 
     <section class="card table-card">
@@ -57,19 +68,19 @@ type SortDirection = 'asc' | 'desc';
           <thead>
             <tr>
               <th>No</th>
-              <th (click)="sortBy('username')">Username</th>
-              <th (click)="sortBy('firstName')">Name</th>
-              <th (click)="sortBy('email')">Email</th>
-              <th (click)="sortBy('basicSalary')">Salary</th>
-              <th (click)="sortBy('status')">Status</th>
-              <th (click)="sortBy('group')">Group</th>
+              <th (click)="sortBy('username')">Username {{ sortIcon('username') }}</th>
+              <th (click)="sortBy('firstName')">Name {{ sortIcon('firstName') }}</th>
+              <th (click)="sortBy('email')">Email {{ sortIcon('email') }}</th>
+              <th (click)="sortBy('basicSalary')">Salary {{ sortIcon('basicSalary') }}</th>
+              <th (click)="sortBy('status')">Status {{ sortIcon('status') }}</th>
+              <th (click)="sortBy('group')">Group {{ sortIcon('group') }}</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
             @for (employee of pagedEmployees(); track employee.id; let i = $index) {
               <tr>
-                <td>{{ (page() - 1) * pageSize + i + 1 }}</td>
+                <td>{{ (page() - 1) * pageSize() + i + 1 }}</td>
                 <td><button class="link" type="button" (click)="goDetail(employee.id)">{{ employee.username }}</button></td>
                 <td>{{ employee.firstName }} {{ employee.lastName }}</td>
                 <td>{{ employee.email }}</td>
@@ -101,28 +112,34 @@ type SortDirection = 'asc' | 'desc';
 })
 export class EmployeesListComponent {
   readonly groups = employeeGroups;
-  keyword = sessionStorage.getItem('employee.keyword') ?? '';
-  status = sessionStorage.getItem('employee.status') ?? '';
-  group = sessionStorage.getItem('employee.group') ?? '';
-  pageSize = Number(sessionStorage.getItem('employee.pageSize') ?? 10);
+
+  // Semua filter pakai signal agar computed() bisa reaktif
+  readonly keyword = signal(sessionStorage.getItem('employee.keyword') ?? '');
+  readonly status = signal(sessionStorage.getItem('employee.status') ?? '');
+  readonly group = signal(sessionStorage.getItem('employee.group') ?? '');
+  readonly pageSize = signal(Number(sessionStorage.getItem('employee.pageSize') ?? 10));
   readonly page = signal(Number(sessionStorage.getItem('employee.page') ?? 1));
   readonly sortKey = signal<SortKey>('username');
   readonly sortDirection = signal<SortDirection>('asc');
   readonly toast = signal<{ type: 'edit' | 'delete'; message: string } | null>(null);
 
+  // Input sementara sebelum tombol Search ditekan
+  readonly keywordInput = signal(sessionStorage.getItem('employee.keyword') ?? '');
+
   readonly filteredEmployees = computed(() => {
-    const keyword = this.keyword.toLowerCase().trim();
+    const keyword = this.keyword().toLowerCase().trim();
     return this.employeeService.employees()
       .filter((employee) => !keyword || [employee.username, employee.firstName, employee.lastName, employee.email].some((value) => value.toLowerCase().includes(keyword)))
-      .filter((employee) => !this.status || employee.status === this.status)
-      .filter((employee) => !this.group || employee.group === this.group)
+      .filter((employee) => !this.status() || employee.status === this.status())
+      .filter((employee) => !this.group() || employee.group === this.group())
       .sort((a, b) => this.compare(a, b));
   });
 
-  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filteredEmployees().length / this.pageSize)));
+  readonly hasActiveFilter = computed(() => !!this.keyword() || !!this.status() || !!this.group());
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filteredEmployees().length / this.pageSize())));
   readonly pagedEmployees = computed(() => {
-    const start = (this.page() - 1) * this.pageSize;
-    return this.filteredEmployees().slice(start, start + this.pageSize);
+    const start = (this.page() - 1) * this.pageSize();
+    return this.filteredEmployees().slice(start, start + this.pageSize());
   });
 
   constructor(private readonly employeeService: EmployeeService, private readonly router: Router) {
@@ -136,12 +153,37 @@ export class EmployeesListComponent {
     }
   }
 
+  onKeywordInput(value: string): void { this.keywordInput.set(value); }
+  onStatusChange(value: string): void { this.status.set(value); this.resetPage(); }
+  onGroupChange(value: string): void { this.group.set(value); this.resetPage(); }
+  onPageSizeChange(value: number): void { this.pageSize.set(value); this.resetPage(); }
+
+  applySearch(): void {
+    this.keyword.set(this.keywordInput());
+    this.resetPage();
+  }
+
   sortBy(key: SortKey): void {
     if (this.sortKey() === key) this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
     else { this.sortKey.set(key); this.sortDirection.set('asc'); }
   }
 
+  sortIcon(key: SortKey): string {
+    if (this.sortKey() !== key) return '↕';
+    return this.sortDirection() === 'asc' ? '↑' : '↓';
+  }
+
   resetPage(): void { this.page.set(1); this.saveSearchState(); }
+
+  resetFilters(): void {
+    this.keyword.set('');
+    this.keywordInput.set('');
+    this.status.set('');
+    this.group.set('');
+    this.pageSize.set(10);
+    this.page.set(1);
+    this.saveSearchState();
+  }
 
   goDetail(id: number): void { this.saveSearchState(); this.router.navigate(['/employees', id]); }
 
@@ -157,14 +199,14 @@ export class EmployeesListComponent {
 
   private showToast(type: 'edit' | 'delete', message: string): void {
     this.toast.set({ type, message });
-    setTimeout(() => this.toast.set(null), 2500);
+    setTimeout(() => this.toast.set(null), 3000);
   }
 
   private saveSearchState(): void {
-    sessionStorage.setItem('employee.keyword', this.keyword);
-    sessionStorage.setItem('employee.status', this.status);
-    sessionStorage.setItem('employee.group', this.group);
-    sessionStorage.setItem('employee.pageSize', String(this.pageSize));
+    sessionStorage.setItem('employee.keyword', this.keyword());
+    sessionStorage.setItem('employee.status', this.status());
+    sessionStorage.setItem('employee.group', this.group());
+    sessionStorage.setItem('employee.pageSize', String(this.pageSize()));
     sessionStorage.setItem('employee.page', String(this.page()));
   }
 

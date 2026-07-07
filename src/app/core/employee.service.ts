@@ -6,13 +6,19 @@ const lastNames = ['Pratama', 'Saputra', 'Lestari', 'Wijaya', 'Siregar', 'Nugroh
 const statuses = ['Permanent', 'Contract', 'Probation', 'Inactive'];
 export const employeeGroups = ['Engineering', 'Product', 'Design', 'Finance', 'HR', 'Operations', 'Sales', 'Marketing', 'Legal', 'Customer Success'];
 
+const STORAGE_KEY = 'employee_management_data';
+
 @Injectable({ providedIn: 'root' })
 export class EmployeeService {
-  readonly employees = signal<Employee[]>(this.createEmployees());
+  readonly employees = signal<Employee[]>(this.loadEmployees());
 
   addEmployee(employee: Omit<Employee, 'id'>): void {
     const nextId = Math.max(...this.employees().map((item) => item.id), 0) + 1;
-    this.employees.update((items) => [{ id: nextId, ...employee }, ...items]);
+    this.employees.update((items) => {
+      const updated = [{ id: nextId, ...employee }, ...items];
+      this.saveToStorage(updated);
+      return updated;
+    });
   }
 
   findById(id: number): Employee | undefined {
@@ -20,14 +26,38 @@ export class EmployeeService {
   }
 
   updateEmployee(id: number, employee: Omit<Employee, 'id'>): void {
-    this.employees.update((items) => items.map((item) => item.id === id ? { id, ...employee } : item));
+    this.employees.update((items) => {
+      const updated = items.map((item) => item.id === id ? { id, ...employee } : item);
+      this.saveToStorage(updated);
+      return updated;
+    });
   }
 
   deleteEmployee(id: number): void {
-    this.employees.update((items) => items.filter((item) => item.id !== id));
+    this.employees.update((items) => {
+      const updated = items.filter((item) => item.id !== id);
+      this.saveToStorage(updated);
+      return updated;
+    });
   }
 
-  private createEmployees(): Employee[] {
+  private loadEmployees(): Employee[] {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) return JSON.parse(stored) as Employee[];
+    } catch {}
+    const seed = this.seedEmployees();
+    this.saveToStorage(seed);
+    return seed;
+  }
+
+  private saveToStorage(employees: Employee[]): void {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
+    } catch {}
+  }
+
+  private seedEmployees(): Employee[] {
     return Array.from({ length: 120 }, (_, index) => {
       const number = index + 1;
       const firstName = firstNames[index % firstNames.length];
