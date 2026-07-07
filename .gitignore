@@ -1,0 +1,30 @@
+# Angular
+.angular/
+dist/
+tmp/
+out-tsc/
+bazel-out/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+.vscode/
+*.sublime-workspace
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Custom
+.gemini/
+.agents/
+*.log
