@@ -115,9 +115,13 @@ type SortDirection = 'asc' | 'desc';
 
       <footer class="pagination">
         <span>Total: {{ filteredEmployees().length }} data</span>
-        <div>
+        <div class="pagination-controls">
           <button class="ghost" type="button" [disabled]="page() === 1" (click)="page.set(page() - 1)">Prev</button>
-          <strong>Page {{ page() }} / {{ totalPages() }}</strong>
+          <div class="page-numbers">
+            @for (p of pageNumbers(); track p) {
+              <button class="page-num" [class.active]="p === page()" type="button" (click)="page.set(p)">{{ p }}</button>
+            }
+          </div>
           <button class="ghost" type="button" [disabled]="page() === totalPages()" (click)="page.set(page() + 1)">Next</button>
         </div>
       </footer>
@@ -154,6 +158,23 @@ export class EmployeesListComponent {
   readonly pagedEmployees = computed(() => {
     const start = (this.page() - 1) * this.pageSize();
     return this.filteredEmployees().slice(start, start + this.pageSize());
+  });
+
+  readonly pageNumbers = computed(() => {
+    const total = this.totalPages();
+    const current = this.page();
+    const pages: number[] = [];
+    let start = Math.max(1, current - 2);
+    let end = Math.min(total, start + 4);
+    if (end - start < 4) {
+      start = Math.max(1, end - 4);
+    }
+    for (let i = start; i <= end; i++) {
+      if (i >= 1 && i <= total) {
+        pages.push(i);
+      }
+    }
+    return pages;
   });
 
   constructor(
